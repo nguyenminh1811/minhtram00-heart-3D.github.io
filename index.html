@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gửi Người Anh Yêu</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Outfit:wght@200;300;400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #1a0b12; 
+        font-family: 'Outfit', sans-serif;
+        color: white;
+      }
+      .font-romantic {
+        font-family: 'Great Vibes', cursive;
+      }
+      .font-cinzel {
+        font-family: 'Cinzel', serif;
+      }
+      
+      .vignette {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-shadow: 0 0 200px rgba(0,0,0,0.8) inset;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(236, 72, 153, 0.5);
+        border-radius: 10px;
+      }
+
+      /* Animations */
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .perspective {
+        perspective: 1000px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Background Animation -->
+    <canvas id="heartCanvas" class="absolute inset-0"></canvas>
+    <div class="vignette"></div>
+
+    <!-- UI Overlay -->
+    <div id="uiOverlay" class="absolute inset-0 z-10 flex flex-col justify-center items-center py-6 px-4 opacity-0 transition-opacity duration-1000 pointer-events-none">
+      
+      <!-- Unified Content Container: Centered exactly where the Heart is -->
+      <div class="flex flex-col items-center w-full max-w-lg pointer-events-none">
+        
+        <!-- Top Section: Title (Positioned just above the heart center) -->
+        <div class="flex flex-col items-center gap-1 mb-2 md:mb-4 pointer-events-none">
+           <h1 class="font-romantic text-5xl sm:text-6xl md:text-8xl text-transparent bg-clip-text bg-gradient-to-b from-pink-100 via-pink-400 to-pink-600 drop-shadow-[0_0_20px_rgba(236,72,153,0.6)] animate-pulse tracking-tight">
+              I Love You
+           </h1>
+           <div class="h-[2px] w-16 sm:w-24 bg-gradient-to-r from-transparent via-pink-400 to-transparent opacity-40"></div>
+        </div>
+
+        <!-- Heart Zone: This spacer keeps the center clear for the heart -->
+        <!-- Tuned to be closer to the heart's vertical span -->
+        <div id="heartSpacer" class="h-[180px] sm:h-[240px] md:h-[320px] pointer-events-none transition-all duration-500"></div>
+
+        <!-- Bottom Section: Message Card (Positioned just below the heart center) -->
+        <div class="w-full flex flex-col items-center pointer-events-auto">
+          <div class="relative group perspective w-full max-w-[280px] sm:max-w-md">
+              <!-- Glass Card with softer styling -->
+              <div class="relative bg-black/20 backdrop-blur-md border border-white/5 p-4 sm:p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform transition-transform duration-500 hover:scale-[1.01]">
+                  <i data-lucide="quote" class="text-pink-300 opacity-30 absolute top-3 left-3 w-4 h-4 sm:w-5 sm:h-5"></i>
+                  
+                  <div id="messageText" class="font-light text-pink-50/90 text-center leading-relaxed tracking-wide text-[10px] sm:text-[13px] md:text-sm custom-scrollbar max-h-[80px] sm:max-h-[120px] overflow-y-auto px-2 whitespace-pre-wrap selection:bg-pink-500/30">
+                      <!-- Message will be injected here -->
+                  </div>
+                  
+                  <i data-lucide="quote" class="text-pink-300 opacity-30 absolute bottom-3 right-3 w-4 h-4 sm:w-5 sm:h-5 rotate-180"></i>
+              </div>
+              
+              <!-- Soft Glow behind card -->
+              <div class="absolute -inset-1.5 bg-gradient-to-br from-pink-500/10 to-purple-600/10 rounded-[2rem] blur-2xl opacity-40 group-hover:opacity-60 transition duration-1000 -z-10"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+      // --- Initialization ---
+      const message = "Gửi người con gái anh iu.\n\nMỗi nhịp đập của trái tim này đều gọi tên em. Thế giới của anh rực rỡ hơn vì có em ở bên.\n\nCảm ơn em đã đến và ở lại. \nYêu em mãi mãi!";
+
+      window.addEventListener('DOMContentLoaded', () => {
+        // Inject message
+        document.getElementById('messageText').textContent = message;
+        
+        // Show UI after 1s
+        setTimeout(() => {
+          document.getElementById('uiOverlay').classList.replace('opacity-0', 'opacity-100');
+        }, 800);
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+      });
+
+      // --- Heart Animation Logic ---
+      const canvas = document.getElementById('heartCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let width, height, cx, cy, HEART_SCALE, PARTICLE_COUNT;
+      
+      function initDimensions() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        cx = width / 2;
+        cy = height / 2;
+
+        const isMobileSize = width < 768;
+        const minDim = Math.min(width, height);
+        
+        // Balanced scaling
+        if (isMobileSize) {
+          HEART_SCALE = minDim * 0.022; 
+        } else {
+          HEART_SCALE = minDim * 0.018;
+        }
+
+        HEART_SCALE = Math.max(9, Math.min(HEART_SCALE, 20));
+        PARTICLE_COUNT = isMobileSize ? 1800 : 3200;
+
+        // Dynamic spacer adjustment
+        const spacer = document.getElementById('heartSpacer');
+        if (spacer) {
+           // The heart goes from cy-17*scale to cy+13*scale roughly.
+           // Setting spacer to ~22*scale gives a nice tight framing.
+           const spacerHeight = HEART_SCALE * 22;
+           spacer.style.height = `${spacerHeight}px`;
+        }
+      }
+
+      initDimensions();
+      const PERSPECTIVE = 600;
+
+      const heartX = (t) => 16 * Math.pow(Math.sin(t), 3);
+      const heartY = (t) => -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+
+      class Particle {
+        constructor() {
+          this.angle = Math.random() * Math.PI * 2;
+          this.radiusScale = Math.sqrt(Math.random());
+          const hx = heartX(this.angle);
+          const hy = heartY(this.angle);
+          this.bx = hx * this.radiusScale * HEART_SCALE;
+          this.by = hy * this.radiusScale * HEART_SCALE;
+          const thickness = (window.innerWidth < 768 ? 30 : 50) * this.radiusScale;
+          this.bz = (Math.random() - 0.5) * thickness;
+          this.x = 0;
+          this.y = 0;
+          this.size = Math.random() * 1.8 + 0.2;
+          const hue = 330 + Math.random() * 30;
+          const sat = 60 + Math.random() * 30;
+          const light = 60 + Math.random() * 25;
+          this.color = `hsl(${hue}, ${sat}%, ${light}%)`;
+          this.currentSize = 0;
+        }
+
+        update(beatScale, rotationY) {
+          let tx = this.bx * beatScale;
+          let ty = this.by * beatScale;
+          let tz = this.bz * beatScale;
+
+          const cosTheta = Math.cos(rotationY);
+          const sinTheta = Math.sin(rotationY);
+
+          const rx = tx * cosTheta - tz * sinTheta;
+          const ry = ty;
+          const rz = tx * sinTheta + tz * cosTheta;
+
+          const scale = PERSPECTIVE / (PERSPECTIVE + rz);
+          this.x = cx + rx * scale;
+          this.y = cy + ry * scale;
+          this.currentSize = this.size * scale;
+        }
+
+        draw() {
+          if (this.currentSize <= 0) return;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.currentSize, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+        }
+      }
+
+      const particles = Array.from({ length: 3500 }, () => new Particle());
+
+      let time = 0;
+      function render() {
+        ctx.fillStyle = "rgba(26, 11, 18, 0.3)";
+        ctx.fillRect(0, 0, width, height);
+
+        time += 0.04;
+        const beat = 1 + 0.12 * Math.pow(Math.sin(time), 8);
+        const rotationY = Math.sin(time * 0.5) * 0.3;
+
+        ctx.globalCompositeOperation = 'lighter';
+        particles.forEach(p => {
+          p.update(beat, rotationY);
+          p.draw();
+        });
+        ctx.globalCompositeOperation = 'source-over';
+
+        requestAnimationFrame(render);
+      }
+
+      render();
+
+      // Ensure particles are updated when dimensions change
+      window.addEventListener('resize', () => {
+        const oldScale = HEART_SCALE;
+        initDimensions();
+        
+        // If the scale changes significantly, we update the particles' base coords
+        if (Math.abs(oldScale - HEART_SCALE) > 0.1) {
+          particles.forEach(p => {
+            const hx = heartX(p.angle);
+            const hy = heartY(p.angle);
+            p.bx = hx * p.radiusScale * HEART_SCALE;
+            p.by = hy * p.radiusScale * HEART_SCALE;
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
